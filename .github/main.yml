@@ -1,0 +1,53 @@
+name: CloudFront IP Updater
+
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch:
+
+jobs:
+  update_ip_list:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GIT_EMAIL: info@layer.web.tr
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Install curl
+        run: sudo apt-get install curl -y
+
+      - name: Fetch CloudFront IP list
+        run: |
+          cloudfront_ips=$(curl -s https://d7uri8nf7uskq.cloudfront.net/tools/list-cloudfront-ips)
+          echo "$cloudfront_ips" > CloudFrontIPs.json
+
+      - name: Parse CloudFront IP list
+        run: |
+          cloudfront_global_ips=$(jq -r '.CLOUDFRONT_GLOBAL_IP_LIST[]' CloudFrontIPs.json)
+          echo "$cloudfront_global_ips" > CloudFrontGlobalIPs.txt
+
+      - name: Generate RouterOS script
+        run: |
+          routeros_script="/ip firewall address-list"
+          while IFS= read -r ip; do
+            routeros_script+="\nadd address=$ip list=CloudFrontips"
+          done < CloudFrontGlobalIPs.txt
+
+          echo -e "$routeros_script" > CloudFront.rsc
+          echo " " >> CloudFront.rsc
+          echo "## Updated $(date) - LAYERWEB.COM.TR Project" >> CloudFront.rsc
+
+      - name: Update CloudFront Route script
+        run: |
+          cat CloudFront.rsc > existing_Serverius_route.rsc
+
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "${GIT_EMAIL}"
+          git config --local user.name "ertugrulturan"
+          git add CloudFront.rsc
+          git commit -m "Update Serverius and CloudFront IP lists"
+          git push
