@@ -96,4 +96,4 @@ add address=108.138.0.0/15 list=CloudFrontips
 add address=120.253.241.160/27 list=CloudFrontips
 add address=64.252.64.0/18 list=CloudFrontips
  
-## Updated Sun Jun  2 14:14:21 UTC 2024 - LAYERWEB.COM.TR Project
+## Updated Sun Jun  2 15:16:40 UTC 2024 - LAYERWEB.COM.TR Project
